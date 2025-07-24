@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AutoFlow.AutomationEngine\AutoFlow.AutomationEngine.csproj" />
     <ProjectReference Include="..\AutoFlow.Project.ServiceDefaults\AutoFlow.Project.ServiceDefaults.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace AutoFlow.Domain.Entities
+{
+    public class Workflow
+    {
+        public Guid Id { get; set; }
+        public required string Name { get; set; }
+        public List<WorkFlowStep> Steps { get; set; } = [];
+        public Dictionary<string, string> GlobalParameters { get; set; } = [];
+
+    }
+}

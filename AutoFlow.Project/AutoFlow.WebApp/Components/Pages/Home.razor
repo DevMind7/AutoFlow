@@ -1,0 +1,94 @@
+﻿@page "/"
+@using Blazorise
+@rendermode InteractiveServer
+
+<PageTitle>Accueil</PageTitle>
+
+<h1>Mes demandes de congés</h1>
+
+<Button Color="Color.Primary" Clicked="@ShowModal">Nouvelle demande</Button>
+
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Nouvelle demande de congés</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Field>
+                <FieldLabel>Date</FieldLabel>
+                <DatePicker TValue="DateTime?" @bind-Dates="selectedDates" InputMode="DateInputMode.Date" SelectionMode="DateInputSelectionMode.Range" />
+            </Field>
+            <Field>
+                <FieldLabel>Motif</FieldLabel>
+                <TextEdit Placeholder="Ecrivez le motif de votre demande ..." />
+            </Field>
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="@HideModal">Close</Button>
+            <Button Color="Color.Primary" Clicked="@SaveChanges">Save Changes</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
+<Table>
+    <TableHeader ThemeContrast="ThemeContrast.Dark">
+        <TableRow>
+            <TableHeaderCell>Demande</TableHeaderCell>
+            <TableHeaderCell>Date début</TableHeaderCell>
+            <TableHeaderCell>Date fin</TableHeaderCell>
+            <TableHeaderCell>Nombre de jours</TableHeaderCell>
+            <TableHeaderCell>Statut</TableHeaderCell>
+        </TableRow>
+    </TableHeader>
+    <TableBody>
+        <TableRow>
+            <TableRowHeader>1001</TableRowHeader>
+            <TableRowCell>02-09-23</TableRowCell>
+            <TableRowCell>08-09-23</TableRowCell>
+            <TableRowCell>3</TableRowCell>
+            <TableRowCell>Validé</TableRowCell>
+
+        </TableRow>
+        <TableRow>
+            <TableRowHeader>1002</TableRowHeader>
+            <TableRowCell>02-09-24</TableRowCell>
+            <TableRowCell>08-09-24</TableRowCell>
+            <TableRowCell>3</TableRowCell>
+            <TableRowCell>Refusé</TableRowCell>
+
+        </TableRow>
+        <TableRow>
+            <TableRowHeader>1003</TableRowHeader>
+            <TableRowCell>02-09-25</TableRowCell>
+            <TableRowCell>08-09-25</TableRowCell>
+            <TableRowCell>3</TableRowCell>
+            <TableRowCell>En Attente</TableRowCell>
+
+        </TableRow>
+    </TableBody>
+</Table>
+
+
+@code {
+    private Modal modalRef;
+    IReadOnlyList<DateTime?> selectedDates;
+
+
+    private async Task ShowModal()
+    {
+        if (modalRef != null)
+            await modalRef.Show();
+    }
+
+    private async Task SaveChanges()
+    {
+        // Appel api, sauvegarde de la demande et affichage dans le tableau avec statut en attente par defaut. 
+        await modalRef.Hide();
+    }
+
+    private async Task HideModal()
+    {
+        await modalRef.Hide();
+    }
+}

@@ -1,0 +1,185 @@
+﻿@page "/workflow"
+@using AutoFlow.WebApp.Components.Models
+@using AutoFlow.WebApp.Components.Services
+@inject WorkflowService WorkflowService
+@rendermode InteractiveServer
+
+<h3>Créer un Workflow - Demande de congé</h3>
+
+<div class="mb-3">
+    <label>Nom du workflow :</label>
+    <input class="form-control" @bind="Workflow.Name" />
+</div>
+
+<h5>Paramètres</h5>
+
+<div class="mb-2">
+    <label>Date de début :</label>
+    <input class="form-control" type="date" @bind="StartDate" />
+</div>
+
+<div class="mb-2">
+    <label>Date de fin :</label>
+    <input class="form-control" type="date" @bind="EndDate" />
+</div>
+
+<div class="mb-2">
+    <label>Email du manager :</label>
+    <input class="form-control" type="email" @bind="ManagerEmail" />
+</div>
+
+<button class="btn btn-primary mt-2" @onclick="StartVisualWorkflow" disabled="@IsRunning">Lancer le workflow</button>
+
+@if (VisualSteps.Any())
+{
+    <h4 class="mt-4">Exécution du Workflow :</h4>
+    <ul class="list-group">
+        @foreach (var step in VisualSteps)
+        {
+            <li class="list-group-item d-flex align-items-center">
+                <span class="me-2">
+                    @if (step.Status == "running")
+                    {
+                        <div class="spinner-border spinner-border-sm text-secondary"></div>
+                    }
+                    else if (step.Status == "success")
+                    {
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                    }
+                    else if (step.Status == "error")
+                    {
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                    }
+                    else
+                    {
+                        <i class="bi bi-clock text-muted"></i>
+                    }
+                </span>
+                <div>
+                    <strong>@step.StepName</strong>
+                    <div class="small text-muted">@step.Message</div>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private Workflow Workflow = new()
+        {
+            Id = Guid.NewGuid(),
+            Name = "Demande de congé",
+            Steps = new()
+        };
+
+    private List<VisualStep> VisualSteps = new();
+    private DateTime StartDate = DateTime.Today;
+    private DateTime EndDate = DateTime.Today.AddDays(5);
+    private string ManagerEmail = "manager@entreprise.com";
+    private bool IsRunning = false;
+
+    private async Task StartVisualWorkflow()
+    {
+        IsRunning = true;
+        VisualSteps.Clear();
+        Workflow.Id = Guid.NewGuid();
+        Workflow.Steps.Clear();
+
+        var daysRequested = (EndDate - StartDate).Days + 1;
+
+        // Construction des étapes
+        Workflow.Steps.AddRange(new[]
+        {
+            new WorkflowStep
+            {
+                Name = "Validation de la demande",
+                Module = "LeaveValidator",
+                Parameters = new()
+                {
+                    ["days"] = daysRequested.ToString(),
+                    ["startDate"] = StartDate.ToString("yyyy-MM-dd"),
+                    ["endDate"] = EndDate.ToString("yyyy-MM-dd")
+                }
+            },
+            new WorkflowStep
+            {
+                Name = "Vérification du solde",
+                Module = "LeaveBalance",
+                Parameters = new()
+                {
+                    ["availableDays"] = "10",
+                    ["startDate"] = StartDate.ToString("yyyy-MM-dd"),
+                    ["endDate"] = EndDate.ToString("yyyy-MM-dd")
+                }
+            },
+            new WorkflowStep
+            {
+                Name = "Notification manager",
+                Module = "Email",
+                Parameters = new()
+                {
+                    ["to"] = ManagerEmail,
+                    ["subject"] = $"Nouvelle demande de congé du {StartDate:dd/MM/yyyy} au {EndDate:dd/MM/yyyy}"
+                }
+            }
+        });
+
+        // Init visuel
+        foreach (var step in Workflow.Steps)
+        {
+            VisualSteps.Add(new VisualStep
+                {
+                    StepName = step.Name,
+                    Status = "pending",
+                    Message = ""
+                });
+        }
+
+        StateHasChanged();
+
+        // Exécution visuelle
+        for (int i = 0; i < Workflow.Steps.Count; i++)
+        {
+            VisualSteps[i].Status = "running";
+            StateHasChanged();
+            await Task.Delay(3000); // Loader simulé
+
+            var partial = new Workflow
+                {
+                    Id = Guid.NewGuid(),
+                    Name = $"Step-{Workflow.Steps[i].Name}",
+                    Steps = new() { Workflow.Steps[i] }
+                };
+
+            var response = await WorkflowService.ExecuteWorkflowAsync(partial);
+            var result = response?.Results?.FirstOrDefault();
+
+            if (result is not null)
+            {
+                VisualSteps[i].Status = result.Success ? "success" : "error";
+                VisualSteps[i].Message = result.Message;
+            }
+            else
+            {
+                VisualSteps[i].Status = "error";
+                VisualSteps[i].Message = "Aucune réponse du moteur.";
+            }
+
+            StateHasChanged();
+        }
+
+        IsRunning = false;
+    }
+
+    private class VisualStep
+    {
+        public string StepName { get; set; } = "";
+        public string Status { get; set; } = "pending"; // running, success, error
+        public string Message { get; set; } = "";
+    }
+
+    private List<string> AvailableModules = new()
+    {
+        "LeaveValidator", "LeaveBalance", "Email", "LeaveNotify", "LeaveSummary", "Transform"
+    };
+}
